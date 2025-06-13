@@ -1,0 +1,8 @@
+для кнопки новый ли товар
+
+<div class="flex items-center justify-between">
+    <label for='isNew' class="flex items-center space-x-2 text-sm">
+    <input name='isNew' id='isNew' type="checkbox" class="rounded text-blue-600">
+    <span>Новый ли товар?</span>
+    </label>
+</div>
