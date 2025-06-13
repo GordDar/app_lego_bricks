@@ -97,13 +97,17 @@
   <div class="container-fluid">
     <div class="row">
         <!-- Sidebar -->
-        <div class="col-md-3 sidebar">
+        <div class="col-md-2 sidebar">
             <h5>Сортировать по категориям</h5>
             <ul class="list-group">
-                
-                <li class="list-group-item">All <button class="btn btn-link btn-sm">Show Items on Sale</button></li>
-                <li class="list-group-item">Sets <span class="badge badge-primary">20 lots</span></li>
-                <li class="list-group-item">Parts <span class="badge badge-primary">2,875 lots</span></li>
+                <li class="list-group-item"><button class="btn btn-link btn-sm">Все товары</button></li>
+                <ul class="list-group">
+                  {% for category in categories %}
+                  <li class="list-group-item">
+                      <a href="{{ url_for('main.show_category', category_id=category.id) }}">{{ category.name }}</a>
+                  </li>
+                  {% endfor %}
+              </ul>
             </ul>
         </div>
    

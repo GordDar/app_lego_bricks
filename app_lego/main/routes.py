@@ -1,11 +1,11 @@
-from flask import render_template, redirect, url_for, request, flash, Request, Blueprint
+from flask import render_template, redirect, url_for, request, flash, Request, Blueprint, jsonify, session
 from flask_login import current_user, login_user, logout_user, login_required
 from app_lego.models import check_password_hash
 from app_lego.models import User
 from app_lego.main.forms import LoginForm
 from app_lego import db
 from datetime import datetime
-from app_lego.models import Part
+from app_lego.models import Part, Category
 
 
 main = Blueprint('main', __name__)
@@ -74,7 +74,18 @@ def details():
 
 @main.route('/zakaz')
 def zakaz():
-    return render_template('zakaz.html', title = 'Ваша корзина')
+    search = request.args.get('search')
+    page = request.args.get('page')
+    if page and page.isdigit():
+        page = int(page)
+    else:
+        page = 1
+    if search:
+        parts = Part.query.filter(Part.description.contains(search) | Part.color.contains(search))
+    else:
+        parts = Part.query.order_by(Part.price)
+    pages = parts.paginate(page = page, per_page = 30)
+    return render_template('zakaz.html', title = 'Ваша корзина', pages = pages)
 
 @main.route('/catalog', methods=['GET'])
 def catalog():
@@ -130,6 +141,63 @@ def poisk():
     else:
         parts = Part.query.all()
     return render_template('catalog.html', data = parts)
+
+
+@main.route('/add_to_cart', methods=['POST'])
+def add_to_cart():
+    data = request.get_json()
+    product_id = data.get('id')
+    product_id_str = str(product_id)
+    print(f"Adding product ID: {product_id}")  # отладка
+
+    product = Part.query.get(product_id)
+    if not product:
+        return jsonify({'message': 'Товар не найден'}), 404
+
+    cart = session.get('cart', {})
+    if product_id in cart:
+        cart[product_id_str]['quantity'] += 1
+    else:
+        cart[product_id_str] = {
+            'name': product.description,
+            'price': str(product.price),
+            'quantity': 1,
+        }
+    session['cart'] = cart
+    print(f"Current cart: {session['cart']}")  # отладка
+    return jsonify({'message': 'Товар добавлен в корзину'})
+
+
+@main.route('/zakaz')
+def cart():
+    items = []
+    cart = session.get('cart', {})
+    for product_id_str, item in cart.items():
+        items.append({
+            'name': item['name'],
+            'price': float(item['price']),
+            'quantity': item['quantity'],
+            'total': float(item['price']) * item['quantity']
+    })
+    return render_template('zakaz.html', items=items, total_price=sum(i['total'] for i in items))
+
+
+@main.route('/clear_cart')
+def clear_cart():
+    session.pop('cart', None)
+    return redirect('/zakaz')
+
+
+@main.route('/category/<int:category_id>')
+def show_category(category_id):
+    category = Category.query.get_or_404(category_id)
+    products = Part.query.filter_by(category_id=category.id).all()
+    return render_template('products.html', products=products, category=category)
+
+@main.route('/some_page')  # замените на актуальный маршрут
+def some_page():
+    categories = Category.query.all()
+    return render_template('your_template.html', categories=categories)
 
 
             

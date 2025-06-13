@@ -1,3 +1,4 @@
+
 {% extends "base.html" %}
 {% block content %}
 
@@ -25,14 +26,65 @@
         <a href="{{url_for('main.condition')}}" class="text-sm text-blue-600 hover:underline">Просмотреть условия доставки</a>
       </div>
   
-      <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-300">
-        Войти
-      </button>
+      <button class="btn btn-success">Подтвердить заказ</button>
+     
     </form>
+
+
+
+
+
+
+
+      <body class="bg-gray-100 flex items-center justify-center min-h-screen">
+          <div class="col-md-9">
+            <div class="d-flex justify-content-between align-items-center">
+                <h4>Ваша корзина</h4>
+            </div>
+            {% if items %}
+              <table class="table table-striped product-table">
+                  <thead>
+                      <tr>
+                          <th scope="col">Изображение</th>
+                          <th scope="col">Состояние</th>
+                          <th scope="col">Цвет</th>
+                          <th scope="col">Описание</th>
+                          <th scope="col">Информация</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+
+                  <tbody>
+                      
+                        {% for item in items %}
+                        <tr>
+                            <td>{{ item.name }}</td>
+                            <td>{{ item.price }} ₽</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>{{ item.total }} ₽</td>
+                        </tr>
+                        {% endfor %}
+                  </tbody>
+              </table>
+              <h4>Общая сумма: {{ total_price }} ₽</h4>
+              <button class="btn btn-danger"><a href="/clear_cart">Очистить корзину</a></button>
+            {% else %}
+              <p>Ваша корзина пуста.</p>
+            {% endif %}
+
+          </div>
+          </div>
+          </div>
+      </body>
+
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+  
+  
   
       <div class="text-center mt-6">
         <p class="text-sm text-gray-600">Желаете продолжить покупки?
-          <a href="{{url_for('main.details')}}" class="text-blue-600 hover:underline">Войти в каталог товаров</a>
+          <a href="{{url_for('main.catalog')}}" class="text-blue-600 hover:underline">Войти в каталог товаров</a>
         </p>
       </div>
     </div>
