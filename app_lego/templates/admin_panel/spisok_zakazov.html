@@ -1,0 +1,17 @@
+{% extends "admin_panel/layout.html" %}
+
+
+{% block content %}
+
+
+{% if current_user.is_authenticated %}
+
+<h1> Список заказов</h1>
+
+{% else %}
+
+<h1> Войдите в систему администратора </h1>
+
+{% endif %}
+
+{% endblock content %}

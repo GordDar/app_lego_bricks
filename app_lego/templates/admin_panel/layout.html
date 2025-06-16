@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel = 'stylesheet' href = "{{url_for('static', filename= 'css/style.css')}}">
+    
+    {% block title %}
+      <title> {{ title if title else 'BrickIt' }} </title>
+    {% endblock title %}
+
+
+
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .header {
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+        .sidebar {
+            background-color: #f8f9fa;
+            padding: 10px;
+        }
+        .product-table img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body>
+
+
+
+    {% block menu %}
+
+      <header class = 'header'> 
+        <div class = 'logo'>
+          <img src=' {{ url_for('static', filename='img/logo.png') }}' alt='logo'>
+          <nav class="navbar navbar-expand-lg navbar-light">
+            <a class="navbar-brand" href="{{url_for('main.index')}}">BrickIt</a>
+          </nav>
+          <ul class = 'main_menu'>
+
+    
+
+            <li><a href = '#'> <p>Загрузить Wanted list c bl </p></a></li>
+            <li><a href = '{{url_for('admin_panel.create')}}'> <p>Создание объекта </p></a></li>
+            <li><a href = '{{url_for('admin_panel.catalog')}}'> <p>Каталог </p></a></li>
+            <li><a href = '{{url_for('admin_panel.zakaz')}}'> <p>Просмотр заказов </p></a></li>
+            <li><a href = '{{url_for('admin_panel.index')}}'> <p>Выход </p></a></li>
+
+            
+            <li><a href = '{{url_for('admin_panel.login')}}'> <p> Логин </p></a></li>
+            
+
+
+
+
+          </ul>
+        </div>
+
+      </header>
+    {% endblock menu %}  
+
+
+
+    
+
+            
+
+ 
+
+
+<div class = 'wrap'>
+
+  <div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+      
+
+      <div class='col-md-9 content'>
+
+        <div class='empty_block'></div>
+        <main role='main' class='#'>
+
+            <div class = 'col_md_12'>
+              {% with messages = get_flashed_messages(with_categories=True) %}
+                {% if messages %}
+                  {% for category, message in messages %}
+                    <div class='alert alert-{{ category }}'>{{ message }}</div>
+                  {% endfor %}
+                {% endif %}
+              {% endwith %}
+
+
+
+              {% block content %}{% endblock content %}
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  </div>
+
+
+    {% block details %} {% endblock details %}
+
+
+
+
+  {% block main_page %}
+
+  {% endblock main_page %}
+
+
+
+  
+
+
+
+  {% block footer %}
+
+  <footer class='footer'>
+    <p>&copy; 2025 </p>
+  </footer>
+  {% endblock footer %}
+
+
+
+</div>
+</body>
+</html>

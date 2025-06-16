@@ -24,43 +24,24 @@
             </thead>
             <tbody>
 
-                {% for el in pages.items %}
+                {% if data %}
                     <tr>
                         <td><img src="https://via.placeholder.com/50x50/0000FF/ffffff?text=Blue" alt="Изображение"></td>
-                        <td>{{el.isNew}}</td>
-                        <td>{{el.color}}</td>
-                        <td>{{el.description}}</td>
+                        <td>{{data.isNew}}</td>
+                        <td>{{data.color}}</td>
+                        <td>{{data.description}}</td>
                         <td>
-                            <span>Наличие: {{el.quantity}}</span><br>
-                            <span>Цена: {{el.price}} росс.рублей</span><br>
-                            <button class="btn btn-primary btn-sm add-to-cart" data-id="{{el.id}}">Добавить в корзину</button>
+                            <span>Наличие: {{data.quantity}}</span><br>
+                            <span>Цена: {{data.price}} росс.рублей</span><br>
+                            <button class="btn btn-primary btn-sm add-to-cart" data-id="{{data.id}}">Добавить в корзину</button>
                         </td>
                     </tr>
-                {% endfor%}
+                {% endif %}
 
                 
             </tbody>
             
         </table>
-        <nav>
-            <ul class="pagination justify-content-center">
-                <li class="page-item {% if not pages.has_prev %}disabled{% endif %}">
-                    <a class="page-link" href="{{ url_for('main.index', page=pages.prev_num) }}">Предыдущая</a>
-                </li>
-                {% for p in pages.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
-                    {% if p %}
-                        <li class="page-item {% if p == pages.page %}active{% endif %}">
-                            <a class="page-link" href="{{ url_for('main.index', page=p) }}">{{ p }}</a>
-                        </li>
-                    {% else %}
-                        <li class="page-item disabled"><span class="page-link">...</span></li>
-                    {% endif %}
-                {% endfor %}
-                <li class="page-item {% if not pages.has_next %}disabled{% endif %}">
-                    <a class="page-link" href="{{ url_for('main.index', page=pages.next_num) }}">Следующая</a>
-                </li>
-            </ul>
-        </nav>
         
     
     </div>

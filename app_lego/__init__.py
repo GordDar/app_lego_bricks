@@ -48,21 +48,26 @@ def create_app():
         from app_lego.main.routes import main as main_blueprint
         from app_lego.user.routes import users as users_blueprint
         from app_lego.part.routes import parts as parts_blueprint
+        from app_lego.admin_panel.routes import admin_panel as admin_panel_blueprint
 
         app.register_blueprint(main_blueprint)
         app.register_blueprint(users_blueprint)
         app.register_blueprint(parts_blueprint)
+        app.register_blueprint(admin_panel_blueprint)
 
     return app
+
+
+
 
 def create_user():
     with create_app().app_context():
         from app_lego.models import User
         db.drop_all()
         db.create_all()
-
-        hashed_password = bcrypt.generate_password_hash('123').decode('utf-8')
-        user= User(username='привет', email='admin@m.com', password=hashed_password)
+        
+        user = User(username='admin', email='admin@example.com')
+        user.set_password('123')  # хешируем пароль
         db.session.add(user)
         db.session.commit()
 

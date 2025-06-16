@@ -1,0 +1,13 @@
+{% if current_user.is_authenticated %} 
+
+<li><a href = '#'> <p>Загрузить Wanted list c bl </p></a></li>
+<li><a href = '{{url_for('admin_panel.create')}}'> <p>Создание объекта </p></a></li>
+<li><a href = '{{url_for('admin_panel.zakaz')}}'> <p>Просмотр заказов </p></a></li>
+<li><a href = '{{url_for('admin_panel.index')}}'> <p>Выход </p></a></li>
+
+{% else %}
+
+<li><a href = '{{url_for('admin_panel.login')}}'> <p> Логин </p></a></li>
+
+
+{% endif %}

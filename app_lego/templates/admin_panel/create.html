@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "admin_panel/layout.html" %}
 
 {% block title %}
     <title> Добавление новой записи с базу данных</title>
@@ -50,11 +50,7 @@
         </button>
         </form>
     
-        <div class="text-center mt-6">
-            <p class="text-sm text-gray-600">Желаете продолжить покупки?
-            <a href="{{url_for('main.details')}}" class="text-blue-600 hover:underline">Войти в каталог товаров</a>
-            </p>
-        </div>
+
     </div>
 </div>
 

@@ -1,6 +1,5 @@
-{% extends "base.html" %}
-{% block main_page %}
-{% endblock main_page %}
+{% extends "admin_panel/layout.html" %}
+
 
 {% block content %}
 
@@ -32,12 +31,19 @@
                 {% else %}
                     {{ form.password(class='form-post-title', placeholder='Пароль')}}
                 {% endif %}
-            
-            <div class='form-check'>
-                {{form.remember(class='form-check-input')}}
-                {{form.remember.label(class='form-check-label')}}
+
+            {% if form.confirm_password.errors %}
+            {{ form.confirm_password(class='form-post-title is-invalid', placeholder='Подтвердите пароль')}}
+            <div class='invalid-feedback'>
+                {% for errors in form.confirm_password.errors %}
+                <span>{{error}}</span>
+                {% endfor %}
             </div>
-            
+            {% else %}
+                {{ form.confirm_password(class='form-post-title', placeholder='Подтвердите пароль')}}
+            {% endif %}
+   
+
             <div class='form-group'>
                 {{form.submit(class='btn_sign_in')}}
             </div>
@@ -46,8 +52,12 @@
 
     </form>
 
+
+
+    <div class='border-top'>
+        <small class='text-nuted'> Уже есть аккаунт? <a class='ml-2' href='{{ url_for('users.login')}}'>Войти</a></small>
+    </div>
+
 </div>
-
-
 
 {% endblock content %}

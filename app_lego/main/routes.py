@@ -38,7 +38,7 @@ def condition():
         
 
 
-@main.route('/login', methods=['GET', 'part'])
+@main.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('main.index'))
@@ -55,7 +55,7 @@ def login():
     return render_template('login.html', form=form, title='Авторизация', legend='Войти')
 
 
-@main.route('/account', methods=['GET', 'part'])
+@main.route('/account', methods=['GET', 'POST'])
 @login_required
 def account():
     return render_template('account.html', title='Аккаунт', current_user=current_user)
@@ -143,6 +143,16 @@ def poisk():
     return render_template('catalog.html', data = parts)
 
 
+@main.route('/poisk_id')
+def poisk_id():
+    search_id = request.args.get('search_id')
+    if search_id:
+        parts = Part.query.filter(Part.id.contains(search_id)).first()
+    else:
+        parts = Part.query.all()
+    return render_template('detail_po_id.html', data = parts)
+
+
 @main.route('/add_to_cart', methods=['POST'])
 def add_to_cart():
     data = request.get_json()
@@ -194,10 +204,9 @@ def show_category(category_id):
     products = Part.query.filter_by(category_id=category.id).all()
     return render_template('products.html', products=products, category=category)
 
-@main.route('/some_page')  # замените на актуальный маршрут
-def some_page():
-    categories = Category.query.all()
-    return render_template('your_template.html', categories=categories)
+
+
+
 
 
             

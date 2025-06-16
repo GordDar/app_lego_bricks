@@ -37,47 +37,49 @@
 
       <header class = 'header'> 
         <div class = 'logo'>
-          <img src=' {{ url_for('static', filename='img/logo.png') }}' alt='logo'>
-          <nav class="navbar navbar-expand-lg navbar-light">
-            <a class="navbar-brand" href="{{url_for('main.index')}}">BrickIt</a>
-              <form class='navbar' method='GET'>
-                <div class="ml-auto">
-                    <input type="text" class="form-control" placeholder="Поиск по каталогу" name='search' value='{{ request.args.get('search', '')}}'>
-                </div>
-                <button class="btn btn-primary btn-sm" type='submit'>Поиск</button>
-              </form>
+          <img src=' {{ url_for('static', filename='img/logo_small.png') }}' alt='logo'>
+
+          <nav class="navbar navbar-expand-lg bg-body-tertiary">
+            <div class="container-fluid">
+              <a class="navbar-brand" href="{{url_for('main.index')}}">BrickIt</a>
+              <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarScroll" aria-controls="navbarScroll" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+              </button>
+              <div class="collapse navbar-collapse" id="navbarScroll">
+                <ul class="navbar-nav me-auto my-2 my-lg-0 navbar-nav-scroll" style="--bs-scroll-height: 100px;">
+                  
+                  
+                  <li class="nav-item">
+                    <a class="nav-link" href="#">Загрузить Wanted list c bl</a>
+                  </li>
+              
+                  
+                  <form class="d-flex" role="search" method="get" action="{{ url_for('main.poisk_id') }}">
+                    <input class="form-control me-2" type="search" placeholder="Поиск по артикулу" aria-label="Search_id" name="search_id" value="{{ request.args.get('search_id', '') }}">
+                    <button class="btn btn-outline-success" type="submit">Поиск</button>
+                  </form>
+
+                  
+                  <form class="d-flex" role="search" method="get">
+                    <input class="form-control me-2" type="search" placeholder="Поиск по каталогу" aria-label="Search" name="search" value="{{ request.args.get('search', '') }}">
+                    <button class="btn btn-outline-success" type="submit">Поиск</button>
+                  </form>
+                  
+                  <li class="nav-item">
+                    <a class="nav-link" href="{{url_for('main.condition')}}">Условия покупки</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="{{url_for('main.catalog')}}">Каталог</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="{{url_for('main.zakaz')}}">Корзина</a>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </nav>
-          <ul class = 'main_menu'>
-
-            {% if current_user.is_authenticated %} 
-
-              <li><a href = '{{url_for('main.index')}}'> <p>Главная </p> </a></li>
-              <li><a href = '{{url_for('main.condition')}}'> <p>Условия покупки </p></a></li>
-              <li><a href = '{{url_for('main.catalog')}}'> <p>Каталог </p></a></li>
-              <li><a href = '#'> <p>Поиск по артикулу </p></a></li>
-              <li><a href = '#'> <p>Загрузить Wanted list c bl </p></a></li>
-              <li><a href = '#'> <p>Поиск </p></a></li>
-              <li><a href = '{{url_for('main.create')}}'> <p>Создание объекта </p></a></li>
-              <li><a href = '{{url_for('main.zakaz')}}'> <p>Просмотр заказов </p></a></li>
-              <li><a href = '{{url_for('main.index')}}'> <p>Выход </p></a></li>
-
-            {% else %}
-
-              <li><a href = '{{url_for('main.index')}}'> <p>Главная </p> </a></li>
-              <li><a href = '{{url_for('main.login')}}'> <p>Логин </p></a></li>
-              <li><a href = '{{url_for('main.catalog')}}'> <p>Каталог </p></a></li>
-              <li><a href = '{{url_for('main.condition')}}'> <p>Условия покупки </p></a></li>
-              <li><a href = '#'> <p>Поиск по артикулу </p></a></li>
-              <li><a href = '#'> <p>Загрузить Wanted list c bl </p></a></li>
-              <li><a href = '{{url_for('main.create')}}'> <p>Создание объекта </p></a></li>
-              <li><a href = '#'> <p>Поиск </p></a></li>
-              <li><a href = '{{url_for('main.zakaz')}}'> <p>Корзина </p></a></li>
-
-            {% endif %}
 
 
-
-          </ul>
         </div>
 
       </header>
@@ -98,6 +100,26 @@
     <div class="row">
         <!-- Sidebar -->
         <div class="col-md-2 sidebar">
+          <ul class="navbar-nav me-auto my-2 my-lg-0 navbar-nav-scroll" style="--bs-scroll-height: 100px;">
+            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              Выбор деталей по категориям
+            </a>
+            <ul class="dropdown-menu">
+              {% if categories %}
+                {% for category in categories %}
+                  <li>
+                    <a class="dropdown-item" href="{{ url_for('main.show_category', category_id=category.id) }}">{{ category.name }}</a>
+                  </li>
+                {% endfor %}
+              {% else %}
+                  <li>
+                    <a class="dropdown-item" href="{{url_for('main.catalog')}}">Весь каталог товаров</a>
+                  </li>
+              {% endif %}
+              
+            </ul>
+          </ul>
+          </li>
             <h5>Сортировать по категориям</h5>
             <ul class="list-group">
                 <li class="list-group-item"><button class="btn btn-link btn-sm">Все товары</button></li>
