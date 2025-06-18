@@ -74,12 +74,13 @@ def catalog():
 @admin_panel.route('/admin_panel/create', methods=['POST', 'GET'])
 def create():
     if request.method == 'POST':
-        name = request.form['name']
+        lot_id = request.form['lot_id']
         price = request.form['price']
         color = request.form['color']
         description = request.form['description']
         quantity = request.form['quantity']
         category_id = request.form['category_id']
+        remarks = request.form['remarks']
         
         # Преобразование цены в число
         try:
@@ -87,7 +88,7 @@ def create():
         except ValueError:
             return "Некорректная цена", 400
 
-        item = Part(name=name, price=price_value, color=color, description=description, quantity=quantity, category_id=category_id)
+        item = Part(lot_id = lot_id, price=price_value, color=color, description=description, quantity=quantity, category=category_id, remarks=remarks)
         
         try:
             db.session.add(item)

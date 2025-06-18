@@ -6,6 +6,9 @@ from app_lego.main.forms import LoginForm
 from app_lego import db
 from datetime import datetime
 from app_lego.models import Part, Category
+from bs4 import BeautifulSoup
+import warnings
+from bs4 import XMLParsedAsHTMLWarning
 
 
 main = Blueprint('main', __name__)
@@ -25,7 +28,7 @@ def index():
             Part.description.contains(search) | Part.color.contains(search)
         )
     else:
-        parts_query = Part.query.order_by(Part.price)
+        parts_query = Part.query.order_by(Part.lot_id)
 
     pages = parts_query.paginate(page=page, per_page=30)
 
@@ -83,7 +86,7 @@ def zakaz():
     if search:
         parts = Part.query.filter(Part.description.contains(search) | Part.color.contains(search))
     else:
-        parts = Part.query.order_by(Part.price)
+        parts = Part.query.order_by(Part.lot_id)
     pages = parts.paginate(page = page, per_page = 30)
     return render_template('zakaz.html', title = 'Ваша корзина', pages = pages)
 
@@ -98,39 +101,11 @@ def catalog():
     if search:
         parts = Part.query.filter(Part.description.contains(search) | Part.color.contains(search))
     else:
-        parts = Part.query.order_by(Part.price)
+        parts = Part.query.order_by(Part.lot_id)
     pages = parts.paginate(page = page, per_page = 30)
     return render_template('catalog.html', title='Каталог', pages = pages)
 
 
-@main.route('/create', methods=['POST', 'GET'])
-def create():
-    if request.method == 'POST':
-        name = request.form['name']
-        price = request.form['price']
-        color = request.form['color']
-        description = request.form['description']
-        quantity = request.form['quantity']
-        category_id = request.form['category_id']
-        
-        # Преобразование цены в число
-        try:
-            price_value = float(price)
-        except ValueError:
-            return "Некорректная цена", 400
-
-        item = Part(name=name, price=price_value, color=color, description=description, quantity=quantity, category_id=category_id)
-        
-        try:
-            db.session.add(item)
-            db.session.commit()
-            return redirect('/')
-        except Exception as e:
-            # Можно залогировать ошибку
-            print(f"Ошибка при добавлении объекта: {e}")
-            return 'Произошла ошибка при сохранении объекта!'
-    else:
-        return render_template('create.html', title='Создание объекта')
     
     
 @main.route('/poisk')
@@ -147,7 +122,7 @@ def poisk():
 def poisk_id():
     search_id = request.args.get('search_id')
     if search_id:
-        parts = Part.query.filter(Part.id.contains(search_id)).first()
+        parts = Part.query.filter(Part.lot_id.contains(search_id)).first()
     else:
         parts = Part.query.all()
     return render_template('detail_po_id.html', data = parts)
@@ -203,6 +178,122 @@ def show_category(category_id):
     category = Category.query.get_or_404(category_id)
     products = Part.query.filter_by(category_id=category.id).all()
     return render_template('products.html', products=products, category=category)
+
+
+@main.route('/parse')
+def parse_xml_and_query():
+    # Используйте сырую строку для пути
+    xml_file_path = r'D:\lego_store\proba.xml'
+    items_list = []
+    noitems_list = []
+
+    with open(xml_file_path, 'r', encoding='utf-8') as file:
+        xml_content = file.read()
+        
+    warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
+
+    soup = BeautifulSoup(xml_content, 'lxml-xml')
+    items = soup.find_all('ITEM')
+
+    for item in items:
+        def get_text(tag_name):
+            tag = item.find(tag_name)
+            return tag.text if tag else None
+
+        item_id_text = get_text('ITEMID')
+        item_type = get_text('ITEMTYPE')
+        color = get_text('COLOR')
+        max_price_text = get_text('MAXPRICE')
+        min_qty_text = get_text('MINQTY')
+        condition = get_text('CONDITION')
+        notify = get_text('NOTIFY')
+
+        try:
+            item_id = int(item_id_text)
+            max_price = float(max_price_text)
+            min_qty = int(min_qty_text)
+        except (ValueError, AttributeError):
+            # Можно добавить лог или сообщение
+            continue  # пропускаем некорректные данные
+
+        # Проверка в базе
+        existing_item = Part.query.filter_by(lot_id=item_id).first()
+        
+        db_condition = existing_item.condition if existing_item else None
+        db_color = existing_item.color if existing_item else None
+        db_description = existing_item.description if existing_item else None
+        db_price = existing_item.price if existing_item else None
+        db_quantity = existing_item.quantity if existing_item else None
+        db_url = existing_item.url if existing_item else None
+        db_currency = existing_item.currency if existing_item else None
+        
+        item_dict = {
+            'id': str(item_id),
+            'color': db_color,
+            'condition': db_condition,
+            'description': db_description,
+            'price': db_price,
+            'quantity': db_quantity,
+            'url': db_url,
+            'currency': db_currency,
+        }
+
+        
+        if existing_item:
+            items_list.append(item_dict)
+        else:
+            noitems_list.append(item_id)
+        
+        
+
+    # Возвращаем JSON с данными
+    return jsonify({
+    'found_items': items_list,
+    'not_found_items': noitems_list
+})
+
+
+
+
+
+
+
+# @main.route('/wanted_list')
+# def parse_xml_and_query(xml_file_path):
+#     with open(xml_file_path, 'r', encoding='utf-8') as file:
+#         xml_content = file.read()
+
+#     soup = BeautifulSoup(xml_content, 'xml')
+#     items = soup.find_all('ITEM')
+
+#     for item in items:
+#         item_id_text = item.find('ITEMID').text
+#         item_type = item.find('ITEMTYPE').text
+#         color = item.find('COLOR').text
+#         max_price_text = item.find('MAXPRICE').text
+#         min_qty_text = item.find('MINQTY').text
+#         condition = item.find('CONDITION').text
+#         notify = item.find('NOTIFY').text
+
+#         # Преобразуем числовые значения
+#         try:
+#             item_id = int(item_id_text)
+#             max_price = float(max_price_text)
+#             min_qty = int(min_qty_text)
+#         except (ValueError, AttributeError):
+#             print(f"Некорректные данные для ITEMID={item_id_text}")
+#             continue
+
+#         # Выполняем поиск в базе по ITEMID
+#         existing_item = Part.query.filter_by(id=item_id).first()
+
+#         if existing_item:
+#             print(f"Найден товар: {existing_item}")            
+#         else:
+#             print(f"Товар с ITEMID={item_id} не найден в базе.")
+
+# # вызов функции с путем к вашему XML файлу
+# parse_xml_and_query('path/to/your/file.xml')
 
 
 
