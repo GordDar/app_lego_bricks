@@ -32,8 +32,22 @@
                         <td>{{el.description}}</td>
                         <td>
                             <span>Наличие: {{el.quantity}}</span><br>
+                            <div class="d-flex align-items-center gap-2" data-quantity="{{el.quantity}}">
+                                <!-- Кнопка уменьшения количества -->
+                                <button class="btn btn-outline-secondary" id="decreaseBtn" type="button">-</button>
+                                
+                                <!-- Поле отображения количества -->
+                                <input type="text" id="quantityInput" class="form-control text-center" value="1" style="width: 60px;" readonly>
+                                
+                                <!-- Кнопка увеличения количества -->
+                                <button class="btn btn-outline-secondary" id="increaseBtn" type="button" min="1">+</button>
+                                
+                                <!-- Кнопка добавления в корзину -->
+                                <button class="btn btn-primary ms-3" id="addToCartBtn" type="button" data-id="{{el.id}}">
+                                  Добавить в корзину
+                                </button>
+                            </div>
                             <span>Цена: {{el.price}} росс.рублей</span><br>
-                            <button class="btn btn-primary btn-sm add-to-cart" data-id="{{el.id}}">Добавить в корзину</button>
                         </td>
                     </tr>
                 {% endfor%}
@@ -69,30 +83,66 @@
     </body>
 
     
-    <script>
+    <script>   // ДОБАВЛЕНИЕ ТОВАРА В КОРЗИНУ  
         document.addEventListener('DOMContentLoaded', () => {
-            document.querySelectorAll('.add-to-cart').forEach(button => {
-                button.addEventListener('click', () => {
-                    const productId = button.getAttribute('data-id');
+            document.body.addEventListener('click', (event) => {
+                const target = event.target;
         
+                // Обработка кнопок уменьшения
+                if (target.classList.contains('decrease-btn')) {
+                    const container = target.closest('div.d-flex');
+                    const input = container.querySelector('.quantity-input');
+                    let currentQty = parseInt(input.value);
+                    if (currentQty > 1) {
+                        input.value = currentQty - 1;
+                    }
+                }
+        
+                // Обработка кнопок увеличения
+                if (target.classList.contains('increase-btn')) {
+                    const container = target.closest('div.d-flex');
+                    const input = container.querySelector('.quantity-input');
+                    const maxQty = parseInt(container.getAttribute('data-quantity'));
+                    let currentQty = parseInt(input.value);
+                    if (currentQty < maxQty) {
+                        input.value = currentQty + 1;
+                    }
+                }
+        
+                // Обработка кнопки "Добавить в корзину"
+                if (target.classList.contains('add-to-cart-btn')) {
+                    const container = target.closest('div.d-flex');
+                    const input = container.querySelector('.quantity-input');
+                    let quantity = parseInt(input.value);
+                    const maxQuantity = parseInt(container.getAttribute('data-quantity'));
+        
+                    if (quantity > maxQuantity) {
+                        alert(`Вы не можете добавить больше ${maxQuantity} товаров`);
+                        return;
+                    }
+        
+                    const productId = target.getAttribute('data-id');
+        
+                    // Отправка AJAX-запроса
                     fetch('/add_to_cart', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-CSRFToken': getCookie('csrf_token') // если используете CSRF
+                            'X-CSRFToken': getCookie('csrf_token')
                         },
-                        body: JSON.stringify({id: productId})
+                        body: JSON.stringify({ id: productId, quantity: quantity })
                     })
                     .then(response => response.json())
                     .then(data => {
-                        alert(data.message); // или обновите отображение корзины
+                        alert(data.message);
+                        // Можно обновить корзину
                     })
                     .catch(error => console.error('Ошибка:', error));
-                });
+                }
             });
         });
         
-        // Функция для получения CSRF-токена (если используете Flask-WTF или подобное)
+        // Функция для получения CSRF-токена
         function getCookie(name) {
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
