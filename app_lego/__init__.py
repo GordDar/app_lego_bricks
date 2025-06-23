@@ -205,31 +205,153 @@ def get_orders():
     return jsonify(orders_list)
 
 # --- 5. Установка курса валют в админке (POST /admin/set_currency) ---
+# создание строчек изначально
+def create_initial_settings():
+    initial_settings = [
+        {'settings_name': 'курс белорусского рубля', 'settings_value': 0},
+        {'settings_name': 'курс российского рубля', 'settings_value': 0},
+        {'settings_name': 'минимальная сумма заказа', 'settings_value': 0}
+    ]
+
+    for setting in initial_settings:
+        # Проверяем, есть ли уже такая запись, чтобы не дублировать
+        existing = Settings.query.filter_by(settings_name=setting['settings_name']).first()
+        if not existing:
+            new_setting = Settings(
+                settings_name=setting['settings_name'],
+                settings_value=setting['settings_value']
+            )
+            db.session.add(new_setting)
+    db.session.commit()
+      
+
 @app.route('/admin/set_currency', methods=['POST'])
 @login_required
-def set_currency():
-    data = request.json
-    currency_rate = data.get('currency_rate')  
+def update_settings():
+    data = request.get_json()
     
-    if currency_rate is None:
-        return jsonify({'error': 'Missing currency rate'}), 400
-    
+ # Значение приходит как множество, например {2.11}, !!!! {'курс белорусского рубля': {2.11}, 'курс российского рубля': {3.15}, 'минимальная сумма заказа': {15}}
+    for key, value_set in data.items():
+        # Получим первое (и единственное) значение из множества
+        value = next(iter(value_set), None)
+
+        if value is not None:
+            # Найти настройку по имени
+            setting = Settings.query.filter_by(settings_name=key).first()
+            if setting:
+                # Обновляем только если значение не пустое
+                if value != '' and value is not None:
+                    setting.settings_value = float(value)
     try:
-        currency_rate = float(currency_rate)
-    except ValueError:
-        return jsonify({'error': 'Invalid currency rate'}), 400
+        db.session.commit()
+        return jsonify({"status": "success"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
     
+    # Если настройки приходят как float, !!!!{'курс белорусского рубля': 2.11, 'курс российского рубля': 3.15, 'минимальная сумма заказа': 15}
+    #     for key, value in data.items():
+    #     # Ищем настройку по имени
+    #     setting = Settings.query.filter_by(settings_name=key).first()
+    #     if setting:
+    #         # Обновляем только если значение не пустое
+    #         if value is not None and value != '':
+    #             setting.settings_value = float(value)
+    # try:
+    #     db.session.commit()
+    #     return jsonify({"status": "success"}), 200
+    # except Exception as e:
+    #     db.session.rollback()
+    #     return jsonify({"status": "error", "message": str(e)}), 500
+
+
+
+# --- 6. Структура категорий ---
+def build_nested_structure(paths):
+    structure = {}
+    for path in paths:
+        parts = [part.strip() for part in path.split('/')]
+        current_level = structure
+        for i, part in enumerate(parts):
+            if i == len(parts) - 1:
+                current_level[part] = current_level.get(part, {})
+            else:
+                if part not in current_level:
+                    current_level[part] = {}
+                current_level = current_level[part]
+    return structure
+
+@app.get("/category-structure")
+def get_category_structure():
+    categories = [item.category for item in CatalogItem.query.all()]
+    nested_structure = build_nested_structure(categories)
     
-    settings = Settings.query.first()
-    if not settings:
-        settings = Settings(currency_rate=currency_rate)
-        db.session.add(settings)
+    return jsonify(nested_structure)
+
+
+
+# --- 7. Просмотр одного заказа из админки ---
+@app.route('/admin/orders/<int:order_id>', methods=['GET'])
+def get_order(order_id):
+    order = Order.query.filter(Order.id == order_id).first()
+    if not order:
+        abort(404, description="Order not found")
+    
+    items_list = []
+    total_price_order = 0
+
+    for item in order.items:
+        catalog_item = item.catalog_item
+        price_per_unit = catalog_item.price if catalog_item else 0
+        quantity = item.quantity
+        item_total = price_per_unit * quantity
+        total_price_order += item_total
+
+        items_list.append({
+            'id': item.catalog_item.id,
+            'lot_id': catalog_item.lot_id,
+            'url': catalog_item.url,
+            'color': catalog_item.color,
+            'description': catalog_item.description,
+            'quantity_in_order': quantity,
+            'unit_price': price_per_unit,
+            'total_price': item_total,
+            "remarks": catalog_item.remarks
+        })
+
+    response_data = {
+        "id": order.id,
+        "customer_name": order.customer_name,
+        "customer_telephone": order.customer_telephone,
+        "dostavka": order.dostavka,
+        "total_price": total_price_order,
+        "items": items_list,
+    }
+
+    return jsonify(response_data)
+
+
+
+
+# --- 7. Просмотр данных по 1 детали ---
+@app.route('/catalog_item/<int:item_id>', methods=['GET'])
+def get_catalog_item(item_id):
+    item = CatalogItem.query.get(item_id)
+    if item:
+        return jsonify({
+            'lot_id': item.lot_id,
+            'color': item.color,
+            'category': item.category,
+            'condition': item.condition,
+            'description': item.description,
+            'price': item.price,
+            'quantity': item.quantity,
+            'url': item.url,
+            'currency': item.currency
+        })
     else:
-        settings.currency_rate = currency_rate
-    
-    db.session.commit()
-    
-    return jsonify({'message': 'Currency rate updated', 'currency_rate': settings.currency_rate})
+        abort(404, description="Item not found")
+
 
 # --- Запуск приложения ---
 if __name__ == '__main__':

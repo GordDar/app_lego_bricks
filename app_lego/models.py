@@ -20,10 +20,10 @@ class OrderItem(db.Model):
 
 # Модель "Заказы"
 class Order(db.Model):
+    __tablename__ = 'order'
     id = db.Column(db.Integer, primary_key=True)
     customer_name = db.Column(db.String(100))
     customer_telephone = db.Column(db.String(20))
-    # Исправлено: булевое поле с правильным значением по умолчанию
     dostavka = db.Column(db.Boolean, default=False)
     total_price = db.Column(db.Float)
     # Связь с товарами через таблицу many-to-many
@@ -32,8 +32,8 @@ class Order(db.Model):
 
 class Settings(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    currency_rate = db.Column(db.Float)
-    min_order_amount = db.Column(db.Float)
+    settings_name = db.Column(db.String(20))
+    settings_value = db.Column(db.Float)
     
 
 @login_manager.user_loader
@@ -50,8 +50,8 @@ class AdminUser(db.Model):
 
 class Category(db.Model):
     __tablename__ = 'category'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), unique=True, nullable=False)
+    id = db.Column(db.Integer)
+    name = db.Column(db.String(100), unique=True, primary_key=True, nullable=False)
     
     # Связь с товарами
     catalog_items = db.relationship('CatalogItem', backref='category', lazy=True)
@@ -70,7 +70,7 @@ class CatalogItem(db.Model):
     color = db.Column(db.String(20), nullable=False)
     
     # Внешний ключ на категорию по имени (рекомендуется использовать id для надежности)
-    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
+    category = db.Column(db.Integer, db.ForeignKey('category.name'), nullable=False)
     
     condition = db.Column(db.String(50))
     sub_condition = db.Column(db.String(50))
