@@ -1,5 +1,6 @@
-from app_lego.__init__старый import db, login_manager, bcrypt
+from app_lego.__init__ import db, login_manager, bcrypt
 from flask_bcrypt import check_password_hash, generate_password_hash
+from datetime import datetime
 
 
 # Таблица связи "многие ко многим" между заказами и товарами
@@ -15,10 +16,10 @@ class OrderItem(db.Model):
     catalog_item_id = db.Column(db.Integer, db.ForeignKey('catalog_item.id'), primary_key=True)
     quantity = db.Column(db.Integer, nullable=False)
 
-    order = db.relationship('Order', back_populates='items')
-    catalog_item = db.relationship('CatalogItem')
+    order = db.relationship('Order', back_populates='order_items')
+    catalog_item = db.relationship('CatalogItem', back_populates='order_items')
 
-# Модель "Заказы"
+
 class Order(db.Model):
     __tablename__ = 'order'
     id = db.Column(db.Integer, primary_key=True)
@@ -26,9 +27,12 @@ class Order(db.Model):
     customer_telephone = db.Column(db.String(20))
     dostavka = db.Column(db.Boolean, default=False)
     total_price = db.Column(db.Float)
-    # Связь с товарами через таблицу many-to-many
-    items = db.relationship('CatalogItem', secondary='order_items', back_populates='orders')
+    order_items= db.relationship('OrderItem', back_populates='order', cascade='all, delete-orphan')
+    status = db.Column(db.String(50), nullable=False, default='pending')  # статус заказа
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)  # дата создания
 
+    # Для удобства получения товаров в заказе (через OrderItem)
+    items= db.relationship('CatalogItem', secondary='order_items', viewonly=True, backref='orders')
 
 class Settings(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -50,14 +54,13 @@ class AdminUser(db.Model):
 
 class Category(db.Model):
     __tablename__ = 'category'
-    id = db.Column(db.Integer)
-    name = db.Column(db.String(100), unique=True, primary_key=True, nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
     
     # Связь с товарами
-    catalog_items = db.relationship('CatalogItem', backref='category', lazy=True)
+    # catalog_items = db.relationship('CatalogItem', backref='category', lazy=True)
 
-    # Альтернативная связь (если нужна)
-    parts = db.relationship('CatalogItem', backref='category_obj')
+
 
 
 class CatalogItem(db.Model):
@@ -69,54 +72,35 @@ class CatalogItem(db.Model):
     lot_id = db.Column(db.String(50), nullable=False)  
     color = db.Column(db.String(20), nullable=False)
     
-    # Внешний ключ на категорию по имени (рекомендуется использовать id для надежности)
     category = db.Column(db.Integer, db.ForeignKey('category.name'), nullable=False)
     
     condition = db.Column(db.String(50))
     sub_condition = db.Column(db.String(50))
-    
     description = db.Column(db.Text, nullable=False)
     remarks = db.Column(db.Text)
-    
     price = db.Column(db.Float)
     quantity = db.Column(db.Integer)
-    
     bulk = db.Column(db.Boolean)
     sale = db.Column(db.Boolean)
-    
     url = db.Column(db.String(255))
-    
-    item_no = db.Column(db.String(50))
-    
+    item_no = db.Column(db.String(50))   
     tier_qty_1 = db.Column(db.Integer)
     tier_price_1 = db.Column(db.Float)
-    
     tier_qty_2 = db.Column(db.Integer)
     tier_price_2 = db.Column(db.Float)
-    
     tier_qty_3 = db.Column(db.Integer)
     tier_price_3 = db.Column(db.Float)
-
     reserved_for = db.Column(db.String(100))
-    
     stockroom = db.Column(db.String(100))
-    
     retain = db.Column(db.Boolean)
-    
     super_lot_id = db.Column(db.String(50))
-    
     super_lot_qty = db.Column(db.Integer)
-    
     weight = db.Column(db.Float)
-    
     extended_description = db.Column(db.Text)
-    
     date_added = db.Column(db.DateTime)
-    
     date_last_sold = db.Column(db.DateTime)
-    
    # Валюта
     currency = db.Column(db.String(10))
-   
+
    # Связь с заказами через таблицу many-to-many
-    orders=db.relationship('Order', secondary='order_items', back_populates='items')
+    order_items = db.relationship('OrderItem', back_populates='catalog_item')
