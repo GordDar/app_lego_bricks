@@ -1,18 +1,29 @@
+import os
+
 from flask import Flask, request, jsonify, abort
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import check_password_hash, generate_password_hash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-import os
 from datetime import datetime
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///lego.db' 
+
+DB_USER = os.getenv("DB_USER")
+DB_PASS = os.getenv("DB_PASS")
+DB_NAME = os.getenv("DB_NAME")
+INSTANCE_CONNECTION_NAME = os.getenv("INSTANCE_CONNECTION_NAME")
+
+app.config['SQLALCHEMY_DATABASE_URI'] = (
+    f"postgresql+psycopg2://{DB_USER}:{DB_PASS}@/"
+    f"{DB_NAME}?host=/cloudsql/{INSTANCE_CONNECTION_NAME}"
+)
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:rT;|c/Pdh8[<?vRv@34.118.76.179:5432/postgres'
 app.config['SECRET_KEY'] = 'your_secret_key'
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 
 
-from app_lego.models import Order, order_items_table, CatalogItem, Category, AdminUser, Settings, OrderItem
+from app_lego.models import Order, CatalogItem, Category, AdminUser, Settings, OrderItem
 
 
 # --- 1. Каталог (GET /catalog) ---

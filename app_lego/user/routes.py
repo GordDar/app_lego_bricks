@@ -1,9 +1,9 @@
 from flask import render_template, redirect, url_for, request, flash, Request, Blueprint
 from flask_login import current_user, login_user, logout_user, login_required
-from app_lego.models import check_password_hash
-from app_lego.models import User
+from flask_bcrypt import check_password_hash, generate_password_hash
+from app_lego.models import AdminUser
 from app_lego.user.forms import RegistarionForm
-from app_lego import bcrypt, db
+from app_lego import db
 
 
 users = Blueprint('users', __name__)
@@ -13,8 +13,8 @@ users = Blueprint('users', __name__)
 def register():
     form = RegistarionForm()
     if form.validate_on_submit():
-        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
-        user = User(username=form.username.data, email=form.email.data, password = hashed_password)
+        hashed_password = generate_password_hash(form.password.data).decode('utf-8')
+        user = AdminUser(username=form.username.data, email=form.email.data, password = hashed_password)
         db.session.add(user)
         db.session.commit()
         

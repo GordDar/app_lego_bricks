@@ -1,10 +1,7 @@
 from app_lego import db
 from datetime import datetime
-from app_lego.models import Part, Category
+from app_lego.models import CatalogItem, Category
 from bs4 import BeautifulSoup
-
-
-
 
 
 def parse_xml_and_query(xml_file_path):
@@ -33,7 +30,7 @@ def parse_xml_and_query(xml_file_path):
             continue
 
         # Выполняем поиск в базе по ITEMID
-        existing_item = Part.query.filter_by(id=item_id).first()
+        existing_item = CatalogItem.query.filter_by(id=item_id).first()
 
         if existing_item:
             print(f"Найден товар: {existing_item}")            

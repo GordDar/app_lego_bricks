@@ -1,11 +1,11 @@
 from flask import render_template, redirect, url_for, request, flash, Request, Blueprint
 from flask_login import current_user, login_user, logout_user, login_required
-from app_lego.models import check_password_hash
-from app_lego.models import User
+from flask_bcrypt import check_password_hash, generate_password_hash
+from app_lego.models import AdminUser
 from app_lego.admin_panel.forms import LoginForm
 from app_lego import db
 from datetime import datetime
-from app_lego.models import Part, Category, User
+from app_lego.models import CatalogItem, Category, AdminUser
 
 
 
@@ -64,9 +64,9 @@ def catalog():
     else:
         page = 1
     if search:
-        parts = Part.query.filter(Part.description.contains(search) | Part.color.contains(search))
+        parts = CatalogItem.query.filter(CatalogItem.description.contains(search) | CatalogItem.color.contains(search))
     else:
-        parts = Part.query.order_by(Part.price)
+        parts = CatalogItem.query.order_by(CatalogItem.price)
     pages = parts.paginate(page = page, per_page = 30)
     return render_template('admin_panel/catalog.html', title='Каталог', pages = pages)
 
@@ -88,7 +88,7 @@ def create():
         except ValueError:
             return "Некорректная цена", 400
 
-        item = Part(lot_id = lot_id, price=price_value, color=color, description=description, quantity=quantity, category=category_id, remarks=remarks)
+        item = CatalogItem(lot_id = lot_id, price=price_value, color=color, description=description, quantity=quantity, category=category_id, remarks=remarks)
         
         try:
             db.session.add(item)

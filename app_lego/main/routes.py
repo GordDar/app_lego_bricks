@@ -1,14 +1,13 @@
 from flask import render_template, redirect, url_for, request, flash, Request, Blueprint, jsonify, session
 from flask_login import current_user, login_user, logout_user, login_required
-from app_lego.models import check_password_hash
-from app_lego.models import User
+from flask_bcrypt import check_password_hash, generate_password_hash
+from app_lego.models import AdminUser
 from app_lego.main.forms import LoginForm
 from app_lego import db
 from datetime import datetime
-from app_lego.models import Part, Category
-from bs4 import BeautifulSoup
+from app_lego.models import CatalogItem, Category
+from bs4 import BeautifulSoup, XMLParsedAsHTMLWarning
 import warnings
-from bs4 import XMLParsedAsHTMLWarning
 
 
 main = Blueprint('main', __name__)
@@ -24,11 +23,11 @@ def index():
         page = 1
 
     if search:
-        parts_query = Part.query.filter(
-            Part.description.contains(search) | Part.color.contains(search)
+        parts_query = CatalogItem.query.filter(
+            CatalogItem.description.contains(search) | CatalogItem.color.contains(search)
         )
     else:
-        parts_query = Part.query.order_by(Part.lot_id)
+        parts_query = CatalogItem.query.order_by(CatalogItem.lot_id)
 
     pages = parts_query.paginate(page=page, per_page=30)
 
@@ -84,9 +83,9 @@ def zakaz():
     else:
         page = 1
     if search:
-        parts = Part.query.filter(Part.description.contains(search) | Part.color.contains(search))
+        parts = CatalogItem.query.filter(CatalogItem.description.contains(search) | CatalogItem.color.contains(search))
     else:
-        parts = Part.query.order_by(Part.lot_id)
+        parts = CatalogItem.query.order_by(CatalogItem.lot_id)
     pages = parts.paginate(page = page, per_page = 30)
     return render_template('zakaz.html', title = 'Ваша корзина', pages = pages)
 
@@ -99,9 +98,9 @@ def catalog():
     else:
         page = 1
     if search:
-        parts = Part.query.filter(Part.description.contains(search) | Part.color.contains(search))
+        parts = CatalogItem.query.filter(CatalogItem.description.contains(search) | CatalogItem.color.contains(search))
     else:
-        parts = Part.query.order_by(Part.lot_id)
+        parts = CatalogItem.query.order_by(CatalogItem.lot_id)
     pages = parts.paginate(page = page, per_page = 30)
     return render_template('catalog.html', title='Каталог', pages = pages)
 
@@ -112,9 +111,9 @@ def catalog():
 def poisk():
     search = request.args.get('search')
     if search:
-        parts = Part.query.filter(Part.description.contains(search) | Part.color.contains(search)).all()
+        parts = CatalogItem.query.filter(CatalogItem.description.contains(search) | CatalogItem.color.contains(search)).all()
     else:
-        parts = Part.query.all()
+        parts = CatalogItem.query.all()
     return render_template('catalog.html', data = parts)
 
 
@@ -122,9 +121,9 @@ def poisk():
 def poisk_id():
     search_id = request.args.get('search_id')
     if search_id:
-        parts = Part.query.filter(Part.lot_id.contains(search_id)).first()
+        parts = CatalogItem.query.filter(CatalogItem.lot_id.contains(search_id)).first()
     else:
-        parts = Part.query.all()
+        parts = CatalogItem.query.all()
     return render_template('detail_po_id.html', data = parts)
 
 
@@ -135,7 +134,7 @@ def add_to_cart():
     product_id_str = str(product_id)
     print(f"Adding product ID: {product_id}")  # отладка
 
-    product = Part.query.get(product_id)
+    product = CatalogItem.query.get(product_id)
     if not product:
         return jsonify({'message': 'Товар не найден'}), 404
 
@@ -176,7 +175,7 @@ def clear_cart():
 @main.route('/category/<int:category_id>')
 def show_category(category_id):
     category = Category.query.get_or_404(category_id)
-    products = Part.query.filter_by(category_id=category.id).all()
+    products = CatalogItem.query.filter_by(category_id=category.id).all()
     return render_template('products.html', products=products, category=category)
 
 
@@ -217,7 +216,7 @@ def parse_xml_and_query():
             continue  # пропускаем некорректные данные
 
         # Проверка в базе
-        existing_item = Part.query.filter_by(lot_id=item_id).first()
+        existing_item = CatalogItem.query.filter_by(lot_id=item_id).first()
         
         db_condition = existing_item.condition if existing_item else None
         db_color = existing_item.color if existing_item else None
@@ -285,7 +284,7 @@ def parse_xml_and_query():
 #             continue
 
 #         # Выполняем поиск в базе по ITEMID
-#         existing_item = Part.query.filter_by(id=item_id).first()
+#         existing_item = CatalogItem.query.filter_by(id=item_id).first()
 
 #         if existing_item:
 #             print(f"Найден товар: {existing_item}")            
@@ -306,12 +305,12 @@ def parse_xml_and_query():
 # @app.route('/.')
 # def home():
     # categories = Category.query.all()
-    # parts = Part.query.all()
+    # parts = CatalogItem.query.all()
     # return render_template('index.html', categories=categories, parts=parts)
 
 # @app.route('/product/<int:part_id>')
 # def product_detail(part_id):
-#     part = Part.query.get_or_404(part_id)
+#     part = CatalogItem.query.get_or_404(part_id)
 #     return render_template('product.html', part=part)
 
 # @app.route('/add_to_cart/<int:part_id>')
@@ -328,7 +327,7 @@ def parse_xml_and_query():
 #     total_price = 0
 
 #     for part_id_str, quantity in cart.items():
-#         part = Part.query.get(int(part_id_str))
+#         part = CatalogItem.query.get(int(part_id_str))
 #         if part:
 #             item_total = part.price * quantity
 #             total_price += item_total

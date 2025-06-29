@@ -2,7 +2,7 @@ from flask import flash
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField, BooleanField
 from wtforms.validators import DataRequired, EqualTo, Length, Email, ValidationError
-from app_lego.models import Part
+
 
 class LoginForm(FlaskForm):
     email = StringField('Емейл', validators=[DataRequired(), Email()])
