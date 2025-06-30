@@ -1,3 +1,4 @@
+import csv
 import os
 
 from flask import Flask, request, jsonify, abort
@@ -6,6 +7,9 @@ from flask_bcrypt import check_password_hash, generate_password_hash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from datetime import datetime
 
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
 app = Flask(__name__)
 
 DB_USER = os.getenv("DB_USER")
@@ -13,11 +17,11 @@ DB_PASS = os.getenv("DB_PASS")
 DB_NAME = os.getenv("DB_NAME")
 INSTANCE_CONNECTION_NAME = os.getenv("INSTANCE_CONNECTION_NAME")
 
-app.config['SQLALCHEMY_DATABASE_URI'] = (
-    f"postgresql+psycopg2://{DB_USER}:{DB_PASS}@/"
-    f"{DB_NAME}?host=/cloudsql/{INSTANCE_CONNECTION_NAME}"
-)
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:rT;|c/Pdh8[<?vRv@34.118.76.179:5432/postgres'
+# app.config['SQLALCHEMY_DATABASE_URI'] = (
+#     f"postgresql+psycopg2://{DB_USER}:{DB_PASS}@/"
+#     f"{DB_NAME}?host=/cloudsql/{INSTANCE_CONNECTION_NAME}"
+# )
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@db:5432/mydb'
 app.config['SECRET_KEY'] = 'your_secret_key'
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
@@ -118,7 +122,7 @@ def submit_cart():
             catalog_item=catalog_item,
             quantity=quantity_requested
         )
-        order.items.append(order_item)
+        order.order_items.append(order_item)
 
         # Обновляем количество на складе после подтверждения заказа
         catalog_item.quantity -= quantity_requested
@@ -219,9 +223,9 @@ def get_orders():
 # создание строчек изначально
 def create_initial_settings():
     initial_settings = [
-        {'settings_name': 'курс белорусского рубля', 'settings_value': 0},
-        {'settings_name': 'курс российского рубля', 'settings_value': 0},
-        {'settings_name': 'минимальная сумма заказа', 'settings_value': 0}
+        {'settings_name': 'byn', 'settings_value': 0},
+        {'settings_name': 'rub', 'settings_value': 0},
+        {'settings_name': 'min', 'settings_value': 0}
     ]
 
     for setting in initial_settings:
@@ -237,51 +241,51 @@ def create_initial_settings():
       
 
 @app.route('/admin/set_currency', methods=['POST'])
-@login_required
+# @login_required
 def update_settings():
     data = request.get_json()
     
  # Значение приходит как множество, например {2.11}, !!!! {'курс белорусского рубля': {2.11}, 'курс российского рубля': {3.15}, 'минимальная сумма заказа': {15}}
-    for key, value_set in data.items():
-        # Получим первое (и единственное) значение из множества
-        value = next(iter(value_set), None)
-
-        if value is not None:
-            # Найти настройку по имени
-            setting = Settings.query.filter_by(settings_name=key).first()
-            if setting:
-                # Обновляем только если значение не пустое
-                if value != '' and value is not None:
-                    setting.settings_value = float(value)
+ #    for key, value_set in data.items():
+ #        # Получим первое (и единственное) значение из множества
+ #        value = next(iter(value_set), None)
+ #
+ #        if value is not None:
+ #            # Найти настройку по имени
+ #            setting = Settings.query.filter_by(settings_name=key).first()
+ #            if setting:
+ #                # Обновляем только если значение не пустое
+ #                if value != '' and value is not None:
+ #                    setting.settings_value = float(value)
+ #    try:
+ #        db.session.commit()
+ #        return jsonify({"status": "success"}), 200
+ #    except Exception as e:
+ #        db.session.rollback()
+ #        return jsonify({"status": "error", "message": str(e)}), 500
+    
+    # Если настройки приходят как float, !!!!{'byn': 2.11, 'rub': 3.15, 'min': 15}
+    for key, value in data.items():
+        # Ищем настройку по имени
+        setting = Settings.query.filter_by(settings_name=key).first()
+        if setting:
+            # Обновляем только если значение не пустое
+            if value is not None and value != '':
+                setting.settings_value = float(value)
     try:
         db.session.commit()
         return jsonify({"status": "success"}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({"status": "error", "message": str(e)}), 500
-    
-    # Если настройки приходят как float, !!!!{'курс белорусского рубля': 2.11, 'курс российского рубля': 3.15, 'минимальная сумма заказа': 15}
-    #     for key, value in data.items():
-    #     # Ищем настройку по имени
-    #     setting = Settings.query.filter_by(settings_name=key).first()
-    #     if setting:
-    #         # Обновляем только если значение не пустое
-    #         if value is not None and value != '':
-    #             setting.settings_value = float(value)
-    # try:
-    #     db.session.commit()
-    #     return jsonify({"status": "success"}), 200
-    # except Exception as e:
-    #     db.session.rollback()
-    #     return jsonify({"status": "error", "message": str(e)}), 500
 
 
 
 # --- 6. Структура категорий ---
-def build_nested_structure(paths):
+def build_nested_structure(categories):
     structure = {}
-    for path in paths:
-        parts = [part.strip() for part in path.split('/')]
+    for category in categories:
+        parts = [part.strip() for part in category.name.split('/')]
         current_level = structure
         for i, part in enumerate(parts):
             if i == len(parts) - 1:
@@ -294,7 +298,7 @@ def build_nested_structure(paths):
 
 @app.get("/category-structure")
 def get_category_structure():
-    categories = [item.category for item in CatalogItem.query.all()]
+    categories = Category.query.all()
     nested_structure = build_nested_structure(categories)
     
     return jsonify(nested_structure)
@@ -352,7 +356,7 @@ def get_catalog_item(item_id):
         return jsonify({
             'lot_id': item.lot_id,
             'color': item.color,
-            'category': item.category,
+            'category': item.category.name,
             'condition': item.condition,
             'description': item.description,
             'price': item.price,
@@ -363,6 +367,82 @@ def get_catalog_item(item_id):
     else:
         abort(404, description="Item not found")
 
+
+def str_to_bool(s):
+    return s.strip().lower() in ['true', '1', 'yes']
+
+
+def get_or_create(session: Session, model, defaults=None, **kwargs):
+    instance = session.query(model).filter_by(**kwargs).first()
+    if instance:
+        return instance, False  # False = not created
+    else:
+        params = dict(**kwargs)
+        if defaults:
+            params.update(defaults)
+        instance = model(**params)
+        session.add(instance)
+        try:
+            session.commit()
+            return instance, True  # True = created
+        except IntegrityError:
+            session.rollback()
+            return session.query(model).filter_by(**kwargs).first(), False
+
+@app.route('/db_add', methods=['POST'])
+def db_add():
+    with open('database.csv', newline='', encoding='utf-8') as csvfile:
+        reader = csv.DictReader(csvfile)
+
+        # Обработка заголовков: убираем пробелы и делаем их нижним регистром
+        rows = []
+        for row in reader:
+            row = {k.strip(): v for k, v in row.items()}
+            rows.append(row)
+
+        db.session.query(CatalogItem).delete()
+        db.session.commit()
+
+        for row in rows:
+            # Создаем объект CatalogItem
+            category, created = get_or_create(db.session, Category, name=row['Category'].strip())
+            item = CatalogItem(
+                lot_id=row['Lot ID'].strip(),
+                color=row['Color'].strip(),
+                category_id=category.id,  # предполагается, что category - это id (число)
+                condition=row.get('Condition', '').strip(),
+                sub_condition=row.get('Sub-Condition', '').strip(),
+                description=row.get('Description', '').strip(),
+                remarks=row.get('Remarks', '').strip(),
+                price=float(row['Price'].replace('$', '').strip()) if row['Price'] else None,
+                quantity=int(row['Quantity']) if row['Quantity'] else None,
+                bulk=str_to_bool(row.get('Bulk', 'False')),
+                sale=str_to_bool(row.get('Sale', 'False')),
+                url=row.get('URL', '').strip(),
+                item_no=row.get('Item No', '').strip(),
+                tier_qty_1=int(row['Tier Qty 1']) if row['Tier Qty 1'] else None,
+                tier_price_1=float(row['Tier Price 1'].replace('$', '').strip()) if row['Tier Price 1'] else None,
+                tier_qty_2=int(row['Tier Qty 2']) if row['Tier Qty 2'] else None,
+                tier_price_2=float(row['Tier Price 2'].replace('$', '').strip()) if row['Tier Price 2'] else None,
+                tier_qty_3=int(row['Tier Qty 3']) if row['Tier Qty 3'] else None,
+                tier_price_3=float(row['Tier Price 3'].replace('$', '').strip()) if row['Tier Price 3'] else None,
+                reserved_for=row.get('Reserved For', '').strip(),
+                stockroom=row.get('Stockroom', '').strip(),
+                retain=str_to_bool(row.get('Retain', 'False')),
+                super_lot_id=row.get('Super Lot ID', '').strip(),
+                super_lot_qty=int(row['Super Lot Qty']) if row['Super Lot Qty'] else None,
+                weight=float(row['Weight']) if row['Weight'] else None,
+                extended_description=row.get('Extended Description', '').strip(),
+
+                date_added=datetime.strptime(row['Date Added'], '%m/%d/%Y') if row.get('Date Added') else None,
+                date_last_sold=datetime.strptime(row['Date Last Sold'], '%Y-%m-%d') if row.get(
+                    'Date Last Sold') else None,
+
+                currency=row.get('Currency', '').strip()
+            )
+            db.session.add(item)
+    db.session.commit()
+    return '', 200
 
 # --- Запуск приложения ---
 if __name__ == '__main__':

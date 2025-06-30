@@ -16,7 +16,7 @@ class Order(db.Model):
     __tablename__ = 'orders'
     id = db.Column(db.Integer, primary_key=True)
     customer_name = db.Column(db.String(100))
-    customer_telephone = db.Column(db.String(20))
+    customer_telephone = db.Column(db.String(50))
     dostavka = db.Column(db.Boolean, default=False)
     total_price = db.Column(db.Float)
 
@@ -63,7 +63,7 @@ class CatalogItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     lot_id = db.Column(db.String(50), nullable=False)
-    color = db.Column(db.String(20), nullable=False)
+    color = db.Column(db.String(50), nullable=False)
 
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
 
